@@ -38,12 +38,15 @@ export default function Contact({
   onEmail,
   onWhatsApp,
 }: ContactProps) {
-  // Hozirgi sana asosida boshlang'ich oy/yil
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth());
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
-
   const [days, setDays] = useState<(CalendarDay | null)[]>([]);
+
+  // yangi qo'shilgan state-lar:
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setDays(generateCalendarDays(currentYear, currentMonth));
@@ -82,7 +85,6 @@ export default function Contact({
     }
   };
 
-  // Tanlangan sana highlightni to'g'ri solishtirish uchun helper
   const isSameDate = (a?: CalendarDay | null, b?: CalendarDay | null) => {
     if (!a || !b) return false;
     return (
@@ -92,12 +94,65 @@ export default function Contact({
     );
   };
 
+  // Qabul tugmasini bosganda tekshirish
+  const handleBookingClick = () => {
+    if (!fullName.trim() || !phoneNumber.trim()) {
+      setError("Ism va telefon raqamini to‘ldiring!");
+      return;
+    }
+    setError("");
+    onBooking();
+  };
+
   return (
     <div className="px-4 space-y-4 pb-6 pt-4">
       <div className="text-center">
         <h2 className="text-xl font-semibold text-gray-900">Bog'lanish</h2>
         <p className="text-sm text-gray-600 mt-1">Qabulga yozilish uchun</p>
       </div>
+
+      {/* Foydalanuvchi ma'lumotlari */}
+      <Card className="border border-blue-200 rounded-2xl">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-t-2xl">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Phone className="w-4 h-4" />
+            Shaxsiy ma'lumotlar
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To‘liq ism
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Masalan: Asilbek Ahmadjonov"
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telefon raqami
+            </label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="+998 90 123 45 67"
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-sm font-medium mt-1">{error}</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Calendar */}
       <Card className="border border-blue-200 rounded-2xl overflow-hidden">
@@ -132,7 +187,6 @@ export default function Contact({
               <div
                 key={w}
                 className="text-center text-xs font-semibold text-gray-500 py-2"
-                aria-hidden
               >
                 {w}
               </div>
@@ -142,11 +196,7 @@ export default function Contact({
           {/* Days Grid */}
           <div className="grid grid-cols-7 gap-1 mb-4">
             {days.map((day, idx) => {
-              // Agar bo'sh hujayra bo'lsa, layoutni saqlash uchun shaffof element ko'rsatamiz
-              if (!day) {
-                return <div key={idx} className="aspect-square" />;
-              }
-
+              if (!day) return <div key={idx} className="aspect-square" />;
               const disabled = day.isPast || day.isWeekend || !day.isAvailable;
               const selected = isSameDate(selectedDate, day);
 
@@ -155,9 +205,12 @@ export default function Contact({
                   key={idx}
                   onClick={() => !disabled && onDateSelect(day)}
                   disabled={disabled}
-                  aria-label={`Sana ${day.date.toDateString()}`}
-                  className={`aspect-square text-xs rounded-lg transition-all flex items-center justify-center focus:outline-none
-                    ${disabled ? "text-gray-300 cursor-not-allowed bg-transparent" : "text-gray-700 hover:bg-blue-50"}
+                  className={`aspect-square text-xs rounded-lg transition-all flex items-center justify-center
+                    ${
+                      disabled
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-700 hover:bg-blue-50"
+                    }
                     ${day.isToday ? "bg-blue-100 font-semibold" : ""}
                     ${selected ? "bg-blue-500 text-white" : ""}
                     ${day.isAvailable ? "border border-green-200" : ""}`}
@@ -168,17 +221,22 @@ export default function Contact({
             })}
           </div>
 
-          {/* Time slots (faqat tanlangan kun bo'lsa) */}
           {selectedDate && (
             <div className="space-y-3">
-              <h4 className="font-medium text-gray-900 text-sm">Mavjud vaqtlar:</h4>
+              <h4 className="font-medium text-gray-900 text-sm">
+                Mavjud vaqtlar:
+              </h4>
               <div className="grid grid-cols-3 gap-2">
                 {timeSlots.map((time) => (
                   <button
                     key={time}
                     onClick={() => onTimeSelect(time)}
                     className={`py-2 px-3 text-xs rounded-lg border transition-all
-                      ${selectedTime === time ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-700 border-gray-200 hover:border-blue-300"}`}
+                      ${
+                        selectedTime === time
+                          ? "bg-blue-500 text-white border-blue-500"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-blue-300"
+                      }`}
                   >
                     {time}
                   </button>
@@ -187,12 +245,13 @@ export default function Contact({
             </div>
           )}
 
-          {/* Tanlangan sana/vaqt */}
           {selectedDate && selectedTime && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-700">
                 <strong>Tanlangan vaqt:</strong>{" "}
-                {selectedDate.date.getDate()} {months[selectedDate.date.getMonth()]} {selectedDate.date.getFullYear()}, {selectedTime}
+                {selectedDate.date.getDate()}{" "}
+                {months[selectedDate.date.getMonth()]}{" "}
+                {selectedDate.date.getFullYear()}, {selectedTime}
               </p>
             </div>
           )}
@@ -201,7 +260,7 @@ export default function Contact({
 
       {/* Address */}
       <Card className="border border-gray-200 rounded-2xl">
-        <CardHeader className="bg-gradient-to-r from-teal-500 to-blue-500 text-white p-4 border-b border-teal-200 rounded-t-2xl">
+        <CardHeader className="bg-gradient-to-r from-teal-500 to-blue-500 text-white p-4 rounded-t-2xl">
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="w-4 h-4" />
             Manzil
@@ -226,13 +285,13 @@ export default function Contact({
 
       {/* Ish vaqti */}
       <Card className="border border-gray-200 rounded-2xl">
-        <CardHeader className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white p-4 border-b border-indigo-200 rounded-t-2xl">
+        <CardHeader className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white p-4 rounded-t-2xl">
           <CardTitle className="flex items-center gap-2 text-base">
             <Clock className="w-4 h-4" />
             Ish vaqti
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 space-y-2">
+        <CardContent className="p-4">
           <div className="flex justify-between text-sm p-2 bg-gray-50 rounded-lg border border-gray-200">
             <span className="text-gray-600">Dushanba - Shanba</span>
             <span className="font-medium">9:00 - 18:00</span>
@@ -243,7 +302,7 @@ export default function Contact({
       {/* Aloqa tugmalari */}
       <div className="space-y-3">
         <Button
-          onClick={onBooking}
+          onClick={handleBookingClick}
           className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl h-12 border-0 active:scale-95 transition-transform"
         >
           <CalendarIcon className="w-4 h-4 mr-2" />
