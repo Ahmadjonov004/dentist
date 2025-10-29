@@ -25,7 +25,7 @@ export default function Menu({ activeTab, setActiveTab }: MenuProps) {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className="flex flex-col items-center justify-center flex-1 py-2"
+              className="flex flex-col items-center justify-center flex-1 py-1"
             >
               <Icon className={`w-6 h-6 transition-colors ${isActive ? "text-blue-600" : "text-gray-500"}`} />
               <span className={`text-xs mt-1 ${isActive ? "text-blue-600 font-medium" : "text-gray-500"}`}>

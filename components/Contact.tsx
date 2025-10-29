@@ -214,7 +214,7 @@ export default function Contact({
           </div>
 
           <a
-            href="https://www.google.com/maps/place/Denta+Med+A.I.N+Stomatologiya+Qo'qon/@40.5235162,70.9342314,17z"
+            href="https://maps.app.goo.gl/sJnMzAc8BdCvvPLP6"
             target="_blank"
             rel="noopener noreferrer"
             className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition"
