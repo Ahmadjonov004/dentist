@@ -157,20 +157,20 @@ export const services: Service[] = [
 export const beforeAfterImages: BeforeAfterImage[] = [
   {
     title: "Oqartirish",
-    before: "/placeholder.svg?height=200&width=200",
-    after: "/placeholder.svg?height=200&width=200",
+    before: "/oqartirish1.png?height=200&width=200",
+    after: "/oqartirish23.png?height=200&width=200",
     description: "Professional oqartirish natijasi - 3 seans",
   },
   {
     title: "Viner",
-    before: "/placeholder.svg?height=200&width=200",
-    after: "/placeholder.svg?height=200&width=200",
+    before: "/vinir1.png?height=200&width=200",
+    after: "/vinir23.png?height=200&width=200",
     description: "Keramik vinerlar bilan yangilash",
   },
   {
     title: "Implant",
-    before: "/placeholder.svg?height=200&width=200",
-    after: "/placeholder.svg?height=200&width=200",
+    before: "/implant.png?height=200&width=200",
+    after: "/implant2.png?height=200&width=200",
     description: "Tishni qayta tiklash",
   },
 ]
