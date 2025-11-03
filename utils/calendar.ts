@@ -1,59 +1,62 @@
 // utils/calendar.ts
-import type { CalendarDay } from "../types";
+export interface CalendarDay {
+  date: Date;
+  day: number;
+  isToday: boolean;
+  isPast: boolean;
+  isWeekend: boolean;
+  isAvailable: boolean;
+}
 
-export const generateCalendarDays = (
-  year?: number,
-  month?: number
-): (CalendarDay | null)[] => {
-  const today = new Date();
-  const currentYear = typeof year === "number" ? year : today.getFullYear();
-  const currentMonth = typeof month === "number" ? month : today.getMonth();
-
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const lastDay = new Date(currentYear, currentMonth + 1, 0);
-  const daysInMonth = lastDay.getDate();
-
-  // getDay(): 0 - Sunday ... 6 - Saturday
-  // Agar haftaning boshini Dushanba qilish kerak bo'lsa, transform qiling. Hozir Du=0 ko'rsatgan holda qoldirdim.
-  const startingDayOfWeek = firstDay.getDay(); // 0..6
-
+export function generateCalendarDays(year: number, month: number): (CalendarDay | null)[] {
   const days: (CalendarDay | null)[] = [];
-
-  // Bo'sh hujayralar (oy boshiga qadar)
-  for (let i = 0; i < startingDayOfWeek; i++) {
+  
+  // Oyning birinchi kuni
+  const firstDay = new Date(year, month, 1);
+  // Oyning oxirgi kuni
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // O'zbekiston uchun: hafta Dushanbadan boshlanadi (1)
+  // JavaScript'da: Yakshanba = 0, Dushanba = 1, ..., Shanba = 6
+  let firstDayOfWeek = firstDay.getDay();
+  // Agar Yakshanba (0) bo'lsa, uni 6 qilamiz (haftaning oxirgi kuni)
+  if (firstDayOfWeek === 0) firstDayOfWeek = 6;
+  else firstDayOfWeek--; // Boshqa kunlar uchun 1 ta kamaytiramiz
+  
+  // Oldingi oydan bo'sh katakchalar
+  for (let i = 0; i < firstDayOfWeek; i++) {
     days.push(null);
   }
-
-  // Bugungi kunni soat/daqiqa/sekund bo'yicha emas, faqat sana bo'yicha solishtirish uchun midnight yarating
-  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(currentYear, currentMonth, d);
-    const dateMid = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-    const isToday =
-      dateMid.getFullYear() === todayMid.getFullYear() &&
-      dateMid.getMonth() === todayMid.getMonth() &&
-      dateMid.getDate() === todayMid.getDate();
-
-    // Kechagi va undan oldingi sanalar true bo'ladi
-    const isPast = dateMid < todayMid;
-
-    // Haftaning dam kunlari (yakshanba yoki shanba) ni dam kun deb belgilash uchun:
-    const isWeekend = date.getDay() === 6;
-
-    // Bugungi kun ham tanlanadigan bo'lsin: isAvailable -> true agar kelajak yoki bugun bo'lsa va dam kuni bo'lmasa
+  
+  // Joriy oy kunlari
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(year, month, day);
+    const dayOfWeek = date.getDay();
+    
+    // O'zbekistonda dam olish kunlari: Yakshanba (0) va shanba (6)
+    const isWeekend = dayOfWeek === 0 ;
+    
+    // Bugungi kunni tekshirish
+    const isToday = date.getTime() === today.getTime();
+    
+    // O'tgan kunlarni tekshirish
+    const isPast = date < today;
+    
+    // Mavjud kunlar (dam olish kunlari va o'tgan kunlar mavjud emas)
     const isAvailable = !isPast && !isWeekend;
-
+    
     days.push({
-      day: d,
       date,
+      day,
       isToday,
       isPast,
       isWeekend,
       isAvailable,
     });
   }
-
+  
   return days;
-};
+}
