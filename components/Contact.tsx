@@ -6,13 +6,13 @@ import { Calendar as CalendarIcon, MapPin, Clock, Phone, Mail, MessageCircle, Ch
 import type { CalendarDay } from "../types";
 import { generateCalendarDays } from "../utils/calendar";
 import { timeSlots } from "../data/mockData";
+import { useBooking } from "../hooks/useBooking";
 
 interface ContactProps {
   selectedDate: CalendarDay | null;
   selectedTime: string | null;
   onDateSelect: (date: CalendarDay) => void;
   onTimeSelect: (time: string) => void;
-  onBooking: () => void;
   onCall: () => void;
   onEmail: () => void;
   onWhatsApp: () => void;
@@ -23,7 +23,6 @@ export default function Contact({
   selectedTime,
   onDateSelect,
   onTimeSelect,
-  onBooking,
   onCall,
   onEmail,
   onWhatsApp,
@@ -36,11 +35,14 @@ export default function Contact({
   // Form state-lari
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [error, setError] = useState("");
   
   // Modal state-lari
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState<"success" | "error">("error");
+
+  // Booking hook
+  const { submitBooking, loading, error, success, reset } = useBooking();
 
   useEffect(() => {
     setDays(generateCalendarDays(currentYear, currentMonth));
@@ -51,18 +53,23 @@ export default function Contact({
     if (showModal) {
       const timer = setTimeout(() => {
         setShowModal(false);
+        if (success) {
+          // Formani tozalash
+          setFullName("");
+          setPhoneNumber("");
+          reset();
+        }
       }, 3000);
       
       return () => clearTimeout(timer);
     }
-  }, [showModal]);
+  }, [showModal, success, reset]);
 
   const months = [
     "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
     "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
   ];
 
-  // O'zbekiston uchun hafta kunlari (Dushanbadan boshlanadi)
   const weekDays = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
 
   const goToPrevMonth = () => {
@@ -93,41 +100,62 @@ export default function Contact({
   };
 
   // Qabul tugmasini bosganda tekshirish
-  const handleBookingClick = () => {
+  const handleBookingClick = async () => {
+    // Validatsiya
     if (!fullName.trim()) {
       setModalMessage("Iltimos, ismingizni kiriting!");
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
     if (!phoneNumber.trim()) {
       setModalMessage("Iltimos, telefon raqamingizni kiriting!");
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
-    // Telefon raqam formatini tekshirish (ixtiyoriy)
+    // Telefon raqam formatini tekshirish
     const phoneRegex = /^\+?998?\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}$/;
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setModalMessage("Iltimos, to'g'ri telefon raqamini kiriting!");
+      setModalMessage("Iltimos, to'g'ri telefon raqamini kiriting!\nMasalan: +998 90 123 45 67");
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
     if (!selectedDate) {
       setModalMessage("Iltimos, qabul kunini tanlang!");
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
     if (!selectedTime) {
       setModalMessage("Iltimos, qabul vaqtini tanlang!");
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
-    setError("");
-    onBooking();
+    // Ma'lumotlarni jo'natish
+    const result = await submitBooking({
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      selectedDate,
+      selectedTime,
+    });
+
+    if (result) {
+      setModalMessage("✅ Qabulingiz muvaffaqiyatli saqlandi! Tez orada siz bilan bog'lanamiz.");
+      setModalType("success");
+      setShowModal(true);
+    } else {
+      setModalMessage("❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring yoki telefon orqali bog'laning.");
+      setModalType("error");
+      setShowModal(true);
+    }
   };
 
   return (
@@ -135,9 +163,15 @@ export default function Contact({
       {/* Modal/Alert */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl animate-in fade-in duration-300">
+          <div className={`bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl animate-in fade-in duration-300 ${
+            modalType === "success" ? "border-l-4 border-green-500" : "border-l-4 border-red-500"
+          }`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Diqqat!</h3>
+              <h3 className={`text-lg font-semibold ${
+                modalType === "success" ? "text-green-900" : "text-red-900"
+              }`}>
+                {modalType === "success" ? "Muvaffaqiyat!" : "Diqqat!"}
+              </h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -146,10 +180,14 @@ export default function Contact({
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-red-500 text-lg">!</span>
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                modalType === "success" ? "bg-green-100" : "bg-red-100"
+              }`}>
+                <span className={modalType === "success" ? "text-green-500 text-lg" : "text-red-500 text-lg"}>
+                  {modalType === "success" ? "✓" : "!"}
+                </span>
               </div>
-              <p className="text-gray-700 flex-1">{modalMessage}</p>
+              <p className="text-gray-700 flex-1 whitespace-pre-line">{modalMessage}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm text-gray-500">
@@ -158,7 +196,9 @@ export default function Contact({
                   {[1, 2, 3].map((dot) => (
                     <div
                       key={dot}
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+                      className={`w-2 h-2 rounded-full animate-pulse ${
+                        modalType === "success" ? "bg-green-500" : "bg-red-500"
+                      }`}
                       style={{ animationDelay: `${dot * 0.5}s` }}
                     />
                   ))}
@@ -209,9 +249,6 @@ export default function Contact({
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
-          {error && (
-            <p className="text-red-500 text-sm font-medium mt-1">{error}</p>
-          )}
         </CardContent>
       </Card>
 
@@ -363,10 +400,20 @@ export default function Contact({
       <div className="space-y-3">
         <Button
           onClick={handleBookingClick}
-          className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl h-12 border-0 active:scale-95 transition-transform"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl h-12 border-0 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <CalendarIcon className="w-4 h-4 mr-2" />
-          Qabulga yozilish
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              Jo'natilmoqda...
+            </>
+          ) : (
+            <>
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              Qabulga yozilish
+            </>
+          )}
         </Button>
 
         <Button
