@@ -6,7 +6,6 @@ import { Calendar as CalendarIcon, MapPin, Clock, Phone, Mail, MessageCircle, Ch
 import type { CalendarDay } from "../types";
 import { generateCalendarDays } from "../utils/calendar";
 import { timeSlots } from "../data/mockData";
-import { useBooking } from "../hooks/useBooking";
 
 interface ContactProps {
   selectedDate: CalendarDay | null;
@@ -16,6 +15,72 @@ interface ContactProps {
   onCall: () => void;
   onEmail: () => void;
   onWhatsApp: () => void;
+}
+
+// useBooking hook ni komponent ichiga olayapmiz
+function useBooking() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const submitBooking = async (data: {
+    fullName: string;
+    phoneNumber: string;
+    selectedDate: CalendarDay;
+    selectedTime: string;
+  }): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      console.log('📨 Jo\'natilayotgan ma\'lumotlar:', data);
+
+      const response = await fetch('/api/booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          phoneNumber: data.phoneNumber,
+          date: data.selectedDate.date.toLocaleDateString('uz-UZ'),
+          time: data.selectedTime,
+        }),
+      });
+
+      console.log('📡 Server javobi:', response.status, response.statusText);
+
+      const result = await response.json();
+      console.log('📄 Response data:', result);
+
+      if (!response.ok) {
+        throw new Error(result.error || `Server xatosi: ${response.status}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Noma\'lum xatolik');
+      }
+
+      setSuccess(true);
+      return true;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Noma\'lum xatolik';
+      setError(errorMessage);
+      console.error('❌ Booking error:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reset = () => {
+    setError(null);
+    setSuccess(false);
+  };
+
+  return { submitBooking, loading, error, success, reset };
 }
 
 export default function Contact({
@@ -101,6 +166,8 @@ export default function Contact({
 
   // Qabul tugmasini bosganda tekshirish
   const handleBookingClick = async () => {
+    console.log('🔄 Qabul tugmasi bosildi');
+    
     // Validatsiya
     if (!fullName.trim()) {
       setModalMessage("Iltimos, ismingizni kiriting!");
@@ -116,10 +183,11 @@ export default function Contact({
       return;
     }
 
-    // Telefon raqam formatini tekshirish
-    const phoneRegex = /^\+?998?\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}$/;
-    if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setModalMessage("Iltimos, to'g'ri telefon raqamini kiriting!\nMasalan: +998 90 123 45 67");
+    // Telefon raqam formatini soddalashtirdim
+    const phoneRegex = /^\+?998[0-9]{9}$/;
+    const cleanPhone = phoneNumber.replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      setModalMessage("Iltimos, to'g'ri telefon raqamini kiriting!\nMasalan: +998901234567");
       setModalType("error");
       setShowModal(true);
       return;
@@ -139,18 +207,26 @@ export default function Contact({
       return;
     }
 
+    console.log('✅ Barcha validatsiyalar muvaffaqiyatli');
+
     // Ma'lumotlarni jo'natish
     const result = await submitBooking({
       fullName: fullName.trim(),
-      phoneNumber: phoneNumber.trim(),
+      phoneNumber: cleanPhone,
       selectedDate,
       selectedTime,
     });
+
+    console.log("📨 Jo'natish natijasi:", result);
 
     if (result) {
       setModalMessage("✅ Qabulingiz muvaffaqiyatli saqlandi! Tez orada siz bilan bog'lanamiz.");
       setModalType("success");
       setShowModal(true);
+      
+      // Formani tozalash
+      setFullName("");
+      setPhoneNumber("");
     } else {
       setModalMessage("❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring yoki telefon orqali bog'laning.");
       setModalType("error");

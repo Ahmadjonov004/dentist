@@ -20,6 +20,8 @@ export function useBooking() {
     setSuccess(false);
 
     try {
+      console.log('📨 Jo\'natilayotgan ma\'lumotlar:', data);
+
       const response = await fetch('/api/booking', {
         method: 'POST',
         headers: {
@@ -33,7 +35,10 @@ export function useBooking() {
         }),
       });
 
+      console.log('📡 Server javobi:', response.status, response.statusText);
+
       const result = await response.json();
+      console.log('📄 Response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || `Server xatosi: ${response.status}`);
@@ -45,10 +50,11 @@ export function useBooking() {
 
       setSuccess(true);
       return true;
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Noma\'lum xatolik';
       setError(errorMessage);
-      console.error('Booking error:', err);
+      console.error('❌ Booking error:', err);
       return false;
     } finally {
       setLoading(false);
